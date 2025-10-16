@@ -1,0 +1,87 @@
+// File: src/App.jsx
+import React, { useState } from "react";
+
+const stopwords = new Set([
+  "the", "is", "and", "to", "of", "in", "a", "for", "on", "that", "with", "as",
+  "by", "it", "an", "be", "are", "at", "from", "or", "this", "was", "which",
+  "you", "your", "their", "has", "can", "will", "not"
+]);
+
+function analyzeText(text) {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, "")
+    .split(/\s+/)
+    .filter((w) => w && !stopwords.has(w));
+
+  const frequency = {};
+  words.forEach((w) => (frequency[w] = (frequency[w] || 0) + 1));
+
+  const sorted = Object.entries(frequency)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  const sentences = text.split(/[.!?]+/).filter(Boolean);
+  const syllables = words.reduce(
+    (sum, w) => sum + (w.match(/[aeiouy]+/g)?.length || 0),
+    0
+  );
+
+  const fleschScore =
+    206.835 - 1.015 * (words.length / sentences.length || 1) -
+    84.6 * (syllables / words.length || 1);
+
+  return {
+    wordCount: words.length,
+    topKeywords: sorted,
+    readability: fleschScore.toFixed(1),
+  };
+}
+
+export default function App() {
+  const [text, setText] = useState("");
+  const [result, setResult] = useState(null);
+
+  const handleAnalyze = () => {
+    if (text.trim()) setResult(analyzeText(text));
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center">
+      <h1 className="text-3xl font-bold text-blue-700 mb-4">
+        SEO Keyword Helper
+      </h1>
+
+      <textarea
+        className="w-full max-w-2xl h-60 p-4 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 outline-none"
+        placeholder="Paste your content here..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+
+      <button
+        onClick={handleAnalyze}
+        className="mt-4 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
+      >
+        Analyze
+      </button>
+
+      {result && (
+        <div className="mt-8 w-full max-w-2xl bg-white rounded-xl shadow p-6">
+          <h2 className="text-xl font-semibold mb-2">Results</h2>
+          <p><strong>Word Count:</strong> {result.wordCount}</p>
+          <p><strong>Readability Score:</strong> {result.readability}</p>
+
+          <h3 className="mt-4 font-semibold text-gray-700">Top Keywords:</h3>
+          <ul className="list-disc ml-6 mt-2">
+            {result.topKeywords.map(([word, count]) => (
+              <li key={word}>
+                <span className="font-medium">{word}</span> ({count} uses)
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
